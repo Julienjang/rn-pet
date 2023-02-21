@@ -1,14 +1,6 @@
-import {
-  Image,
-  Keyboard,
-  ScrollView,
-  StyleSheet,
-  View,
-  TouchableOpacity,
-  Text,
-} from 'react-native';
+import { Image, Keyboard, ScrollView, StyleSheet, View } from 'react-native';
 import Input, { InputTypes, ReturnKeyTypes } from '../components/Input';
-import { useEffect, useRef, useState } from 'react';
+import { useReducer, useRef } from 'react';
 import Button from '../components/Button';
 import SafeInputView from '../components/SafeInputView';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,54 +9,43 @@ import { useNavigation } from '@react-navigation/native';
 import { AuthRoutes } from '../navigations/routes';
 import HR from '../components/HR';
 import { StatusBar } from 'expo-status-bar';
-import { PRIMARY, WHITE } from '../colors';
-import BouncyCheckbox from 'react-native-bouncy-checkbox';
-import { MaterialIcons } from '@expo/vector-icons';
+import { WHITE } from '../colors';
+import {
+  authFormReducer,
+  AuthFormTypes,
+  initAuthForm,
+} from '../reducers/authFormReducer';
 
 const SignUpScreen = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [passwordConfirm, setPasswordConfirm] = useState('');
-  const [userName, setUserName] = useState('');
-  const [nickname, setNickname] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [petKind, setPetKind] = useState(0);
-
   const passwordRef = useRef();
   const passwordConfirmRef = useRef();
-  const userNameRef = useRef();
-  const nickNameRef = useRef();
-  const phoneNumberRef = useRef();
 
-  const petKindList = ['Dog', 'cat', 'Other', 'Null'];
-  const [isLoading, setIsLoading] = useState(false);
-  const [disabled, setDisabled] = useState(true);
+  const [form, dispatch] = useReducer(authFormReducer, initAuthForm);
 
   const { top, bottom } = useSafeAreaInsets();
   const { navigate } = useNavigation();
 
-  useEffect(() => {
-    setDisabled(
-      !email ||
-        !password ||
-        password !== passwordConfirm ||
-        !userName ||
-        !nickname ||
-        !phoneNumber
-    );
-  }, [email, password, passwordConfirm, userName, nickname, phoneNumber]);
+  const updateForm = (payload) => {
+    const newForm = { ...form, ...payload };
+    const disabled =
+      !newForm.email ||
+      !newForm.password ||
+      newForm.password !== newForm.passwordConfirm;
 
-  const petKindChangeHandler = (index) => {
-    // console.log("index \t", index);
-    setPetKind((preIndex) => index);
+    dispatch({
+      type: AuthFormTypes.UPDATE_FORM,
+      payload: { disabled, ...payload },
+    });
   };
 
   const onSubmit = () => {
     Keyboard.dismiss();
-    if (!disabled && !isLoading) {
-      setIsLoading(true);
-      console.log(email, password);
-      setIsLoading(false);
+    if (!form.disabled && !form.isLoading) {
+      dispatch({ type: AuthFormTypes.TOGGLE_LOADING });
+      console.log(form.email, form.password);
+      setTimeout(() => {
+        dispatch({ type: AuthFormTypes.TOGGLE_LOADING });
+      }, 1000);
     }
   };
 
@@ -79,16 +60,17 @@ const SignUpScreen = () => {
             resizeMode={'cover'}
           />
         </View>
+
         <ScrollView
-          style={[styles.form, { paddingBottom: bottom ? bottom + 10 : 45 }]}
+          style={[styles.form, { paddingBottom: bottom ? bottom : 10 + 40 }]}
           contentContainerStyle={{ alignItems: 'center' }}
           bounces={false}
           keyboardShouldPersistTaps={'always'}
         >
           <Input
             inputType={InputTypes.EMAIL}
-            value={email}
-            onChangeText={(text) => setEmail(text.trim())}
+            value={form.email}
+            onChangeText={(text) => updateForm({ email: text.trim() })}
             onSubmitEditing={() => passwordRef.current.focus()}
             styles={{ container: { marginBottom: 20 } }}
             returnKeyType={ReturnKeyTypes.NEXT}
@@ -97,82 +79,29 @@ const SignUpScreen = () => {
           <Input
             ref={passwordRef}
             inputType={InputTypes.PASSWORD}
-            value={password}
-            onChangeText={(text) => setPassword(text.trim())}
+            value={form.password}
+            onChangeText={(text) => updateForm({ password: text.trim() })}
             onSubmitEditing={() => passwordConfirmRef.current.focus()}
             styles={{ container: { marginBottom: 20 } }}
             returnKeyType={ReturnKeyTypes.NEXT}
           />
+
           <Input
             ref={passwordConfirmRef}
             inputType={InputTypes.PASSWORD_CONFIRM}
-            value={passwordConfirm}
-            onChangeText={(text) => setPasswordConfirm(text.trim())}
+            value={form.passwordConfirm}
+            onChangeText={(text) =>
+              updateForm({ passwordConfirm: text.trim() })
+            }
             onSubmitEditing={onSubmit}
-            styles={{ container: { marginBottom: 20 } }}
-            returnKeyType={ReturnKeyTypes.NEXT}
-          />
-          <Input
-            ref={userNameRef}
-            inputType={InputTypes.USERNAME}
-            value={userName}
-            onChangeText={(text) => setUserName(text.trim())}
-            onSubmitEditing={() => userNameRef.current.focus()}
-            styles={{ container: { marginBottom: 20 } }}
-            returnKeyType={ReturnKeyTypes.NEXT}
-          />
-          <Input
-            ref={nickNameRef}
-            inputType={InputTypes.NICKNAME}
-            value={nickname}
-            onChangeText={(text) => setNickname(text.trim())}
-            onSubmitEditing={() => nickNameRef.current.focus()}
-            styles={{ container: { marginBottom: 20 } }}
-            returnKeyType={ReturnKeyTypes.NEXT}
-          />
-          <Input
-            ref={phoneNumberRef}
-            inputType={InputTypes.PHONENUMBER}
-            value={phoneNumber}
-            onChangeText={(text) => setPhoneNumber(text.trim())}
-            onSubmitEditing={() => phoneNumberRef.current.focus()}
             styles={{ container: { marginBottom: 20 } }}
             returnKeyType={ReturnKeyTypes.DONE}
           />
-          <Input
-            inputType={InputTypes.PETKIND}
-            styles={{ flexDirection: 'row' }}
-          />
-          <View text={'PETKIND'} style={{ flexDirection: 'row' }}>
-            {petKindList.map((data, index) => (
-              <TouchableOpacity
-                key={data}
-                style={{
-                  flexDirection: 'row',
-                  margin: 10,
-                  flex: 3,
-                  justifyContent: 'space-evenly',
-                }}
-                onPress={petKindChangeHandler.bind(this, index)}
-              >
-                <MaterialIcons
-                  name={
-                    index === petKind
-                      ? 'radio-button-checked'
-                      : 'radio-button-unchecked'
-                  }
-                  size={20}
-                  color={PRIMARY.DEFAULT}
-                />
-                <Text style={styles.termsText}>{data}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
 
           <Button
             title={'SIGNUP'}
-            disabled={disabled}
-            isLoading={isLoading}
+            disabled={form.disabled}
+            isLoading={form.isLoading}
             onPress={onSubmit}
             styles={{ container: { marginTop: 20 } }}
           />
