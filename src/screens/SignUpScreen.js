@@ -1,4 +1,11 @@
-import { Image, Keyboard, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  Alert,
+  Image,
+  Keyboard,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import Input, { InputTypes, ReturnKeyTypes } from '../components/Input';
 import { useReducer, useRef } from 'react';
 import Button from '../components/Button';
@@ -15,6 +22,8 @@ import {
   AuthFormTypes,
   initAuthForm,
 } from '../reducers/authFormReducer';
+import { getAuthErrorMessages, signUp } from '../api/auth';
+import { useUserState } from '../contexts/UserContext';
 
 const SignUpScreen = () => {
   const passwordRef = useRef();
@@ -24,6 +33,7 @@ const SignUpScreen = () => {
 
   const { top, bottom } = useSafeAreaInsets();
   const { navigate } = useNavigation();
+  const [, setUser] = useUserState();
 
   const updateForm = (payload) => {
     const newForm = { ...form, ...payload };
@@ -38,14 +48,24 @@ const SignUpScreen = () => {
     });
   };
 
-  const onSubmit = () => {
+  const onSubmit = async () => {
     Keyboard.dismiss();
     if (!form.disabled && !form.isLoading) {
       dispatch({ type: AuthFormTypes.TOGGLE_LOADING });
-      console.log(form.email, form.password);
-      setTimeout(() => {
-        dispatch({ type: AuthFormTypes.TOGGLE_LOADING });
-      }, 1000);
+      try {
+        const user = await signUp(form);
+        setUser(user);
+      } catch (e) {
+        const message = getAuthErrorMessages(e.code);
+        Alert.alert('회원가입 실패', message, [
+          {
+            text: '확인',
+            onPress: () => dispatch({ type: AuthFormTypes.TOGGLE_LOADING }),
+          },
+        ]);
+      }
+
+      dispatch({ type: AuthFormTypes.TOGGLE_LOADING });
     }
   };
 
