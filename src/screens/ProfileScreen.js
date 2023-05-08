@@ -5,18 +5,31 @@ import { useUserState } from '../contexts/UserContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { GRAY, WHITE } from '../colors';
 import FastImage from '../components/FastImage';
+import DangerAlert, { AlertTypes } from '../components/DangerAlert';
+import { useState } from 'react';
 
 const ProfileScreen = () => {
   const [user, setUser] = useUserState();
   const { top } = useSafeAreaInsets();
 
+  const [visible, setVisible] = useState(false);
+
   return (
     <View style={[styles.container, { paddingTop: top }]}>
+      <DangerAlert
+        visible={visible}
+        onClose={() => setVisible(false)}
+        onConfirm={async () => {
+          signOut();
+          setUser({});
+        }}
+        alertType={AlertTypes.SIGNOUT}
+      />
+
       <View style={styles.settingButton}>
         <Pressable
-          onPress={async () => {
-            signOut();
-            setUser({});
+          onPress={() => {
+            setVisible(true);
           }}
           hitSlop={10}
         >
